@@ -126,7 +126,7 @@ def reduce_schur(
     else: 
         # Is one of the central processes
         A, L, U = reduce_schur_central(A, start_blockrow, partition_blocksize, blocksize)
-        utils.matu.write_matrix_to_file('saved_matrices/A_red_s_centre_full.bin', A, A.shape[0], blocksize)
+        utils.matu.write_matrix_to_file('saved_matrices/A_red_s_central_full' + str(comm_rank) + '.bin', A, A.shape[0], blocksize)
         return A, L, U
     
     
@@ -621,11 +621,6 @@ def receiveback_inverted_reduced_system(
         
         stop_colindice  = (process_start_blockrow+1) * blocksize
         start_colindice = stop_colindice - nblocks_schur_system * blocksize
-
-        print('start_rowindice remote = ', start_rowindice)
-        print('stop_colindice remote = ', stop_colindice)
-        print('start_colindice remote = ', start_colindice)
-        print('stop_rowindice remote = ', stop_rowindice )
         
         G[start_rowindice:stop_rowindice,\
           start_colindice:stop_colindice] = comm.recv(source=0, tag=0)
@@ -719,9 +714,9 @@ def produce_schur(
         utils.matu.write_matrix_to_file('saved_matrices/G_prod_s_bottom_full.bin', G, G.shape[0], blocksize)
     else: 
         # Is one of the central processes
-        utils.matu.write_matrix_to_file('saved_matrices/G_red_s_central_full.bin', G, G.shape[0], blocksize)
+        utils.matu.write_matrix_to_file('saved_matrices/G_red_s_central_full' + str(comm_rank) + '.bin', G, G.shape[0], blocksize)
         produce_schur_central(A, L, U, G, start_blockrow, partition_blocksize, blocksize)
-        utils.matu.write_matrix_to_file('saved_matrices/G_prod_s_central_full.bin', G, G.shape[0], blocksize)
+        utils.matu.write_matrix_to_file('saved_matrices/G_prod_s_central_full' + str(comm_rank) + '.bin', G, G.shape[0], blocksize)
 
 
 
@@ -882,7 +877,6 @@ def produce_schur_central(
 
 
     for i in range(bottom_blockrow-2, top_blockrow, -1):
-        print(i)
         i_rowindice   = i*blocksize
         ip1_rowindice = (i+1)*blocksize
         ip2_rowindice = (i+2)*blocksize
@@ -901,7 +895,6 @@ def produce_schur_central(
 
 
     for i in range(bottom_blockrow-2, top_blockrow+1, -1):
-        print(i)
         im1_rowindice = (i-1)*blocksize
         i_rowindice   = i*blocksize
         ip1_rowindice = (i+1)*blocksize

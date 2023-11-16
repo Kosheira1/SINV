@@ -86,8 +86,8 @@ def test_psr(
             assert np.allclose(A_refsol_bloc_diag, A_psr_bloc_diag)\
                 and np.allclose(A_refsol_bloc_upper, A_psr_bloc_upper)\
                 and np.allclose(A_refsol_bloc_lower, A_psr_bloc_lower)
-                
+            print("Test passed")
                 
 if __name__ == '__main__':
-    test_psr(True, False, 120, 8)
+    test_psr(True, False, 120, 4)
     
