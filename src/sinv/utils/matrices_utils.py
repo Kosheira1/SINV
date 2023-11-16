@@ -7,7 +7,14 @@ Copyright 2023 ETH Zurich and the QuaTrEx authors. All rights reserved.
 
 import numpy as np
 
-
+def write_matrix_to_file(
+    path_to_file: str,
+    matrix: np.ndarray,
+    matrix_size: int,
+    blocksize: int,
+):
+    with open(path_to_file, "wb") as f:
+        f.write(matrix.tobytes())
 
 def generateRandomNumpyMat(
     matrice_size: int, 
@@ -85,7 +92,7 @@ def generateBandedDiagonalMatrix(
     
     for i in range(matrice_size):
         for j in range(matrice_size):
-            if i - j > matrice_bandwidth or j - i > matrice_bandwidth:
+            if i - j >= matrice_bandwidth or j - i >= matrice_bandwidth:
                 A[i, j] = 0
 
     return A

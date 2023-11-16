@@ -9,7 +9,15 @@ Copyright 2023 ETH Zurich and the QuaTrEx authors. All rights reserved.
 
 import numpy as np
 
-
+def write_matrix_to_file(
+    path_to_file: str,
+    matrix: np.ndarray,
+    matrix_size: int,
+    blocksize: int,
+):
+    with open(path_to_file, "wb") as f:
+        f.write(matrix.tobytes())
+        
 
 def check_input(A: np.ndarray, 
                 blocksize: int, 

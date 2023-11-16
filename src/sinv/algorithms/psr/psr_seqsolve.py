@@ -58,7 +58,9 @@ def psr_seqsolve(
     
     if comm_rank == 0:
         A_schur = aggregate_reduced_system(A, l_start_blockrow, l_partitions_blocksizes, blocksize)
+        utils.matu.write_matrix_to_file('saved_matrices/A_schur.bin', A_schur, A_schur.shape[0], blocksize)
         G_schur = inverse_reduced_system(A_schur)
+        utils.matu.write_matrix_to_file('saved_matrices/G_schur.bin', G_schur, G_schur.shape[0], blocksize)
         sendback_inverted_reduced_system(G_schur, G, l_start_blockrow, l_partitions_blocksizes, blocksize)
     else:
         send_reduced_system(A, l_start_blockrow, l_partitions_blocksizes, blocksize)
@@ -110,16 +112,21 @@ def reduce_schur(
     partition_blocksize = l_partitions_blocksizes[comm_rank]
     
     if comm_rank == 0:
+        print(np.linalg.norm(A, 'fro'))
+        utils.matu.write_matrix_to_file('saved_matrices/A_full.bin', A, A.shape[0], blocksize)
         # Is the first process
         A, L, U = reduce_schur_topleftcorner(A, start_blockrow, partition_blocksize, blocksize)
+        utils.matu.write_matrix_to_file('saved_matrices/A_red_s_top_full.bin', A, A.shape[0], blocksize)
         return A, L, U
     elif comm_rank == comm_size - 1:
         # Is the last process
         A, L, U = reduce_schur_bottomrightcorner(A, start_blockrow, partition_blocksize, blocksize)
+        utils.matu.write_matrix_to_file('saved_matrices/A_red_s_bottom_full.bin', A, A.shape[0], blocksize)
         return A, L, U
     else: 
         # Is one of the central processes
         A, L, U = reduce_schur_central(A, start_blockrow, partition_blocksize, blocksize)
+        utils.matu.write_matrix_to_file('saved_matrices/A_red_s_centre_full.bin', A, A.shape[0], blocksize)
         return A, L, U
     
     
@@ -162,9 +169,7 @@ def reduce_schur_topleftcorner(
         i_rowindice   = i_blockrow*blocksize
         ip1_rowindice = (i_blockrow+1)*blocksize
 
-
         A_inv_im1_im1 = np.linalg.inv(A[im1_rowindice:i_rowindice, im1_rowindice:i_rowindice])
-
         L[i_rowindice:ip1_rowindice, im1_rowindice:i_rowindice] =\
             A[i_rowindice:ip1_rowindice, im1_rowindice:i_rowindice] @ A_inv_im1_im1
         
@@ -377,6 +382,9 @@ def aggregate_reduced_system(
     start_rowindice = (nblocks_schur_system-1)*blocksize
     stop_rowindice  = start_rowindice + blocksize
 
+    #print('start_rowindice local = ', start_rowindice)
+    #print('stop_rowindice local = ', stop_rowindice)
+
     A_schur[start_rowindice:stop_rowindice, :] = comm.recv(source=comm_size-1, tag=0)
     
     
@@ -423,6 +431,9 @@ def send_reduced_system(
         
         stop_colindice  = (process_start_blockrow+1) * blocksize
         start_colindice = stop_colindice - nblocks_schur_system * blocksize
+
+        #print('start_rowindice remote = ', start_rowindice)
+        #print('stop_colindice remote = ', stop_colindice)
         
         comm.send(A[start_rowindice:stop_rowindice,\
                     start_colindice:stop_colindice], dest=0, tag=0)
@@ -448,7 +459,18 @@ def send_reduced_system(
         start_right_colindice = start_left_colindice + process_partition_size * blocksize
         stop_right_colindice  = start_right_colindice + 2*blocksize
         
-        
+        # print('start_top_rowindice = ', start_top_rowindice)
+        # print('stop_top_rowindice = ', stop_top_rowindice)
+
+        # print('start_bottom_rowindice = ', start_bottom_rowindice)
+        # print('stop_bottom_rowindice = ', stop_bottom_rowindice)
+
+        # print('start_left_colindice = ', start_left_colindice)
+        # print('stop_left_colindice = ', stop_left_colindice)
+
+        # print('start_right_colindice = ', start_right_colindice)
+        # print('stop_right_colindice = ', stop_right_colindice)
+
         # Fill the compact representation
         A_reduced_compact[0:blocksize, 0:2*blocksize] =\
             A[start_top_rowindice:stop_top_rowindice, start_left_colindice:stop_left_colindice]
@@ -599,6 +621,11 @@ def receiveback_inverted_reduced_system(
         
         stop_colindice  = (process_start_blockrow+1) * blocksize
         start_colindice = stop_colindice - nblocks_schur_system * blocksize
+
+        print('start_rowindice remote = ', start_rowindice)
+        print('stop_colindice remote = ', stop_colindice)
+        print('start_colindice remote = ', start_colindice)
+        print('stop_rowindice remote = ', stop_rowindice )
         
         G[start_rowindice:stop_rowindice,\
           start_colindice:stop_colindice] = comm.recv(source=0, tag=0)
@@ -680,13 +707,21 @@ def produce_schur(
     
     if comm_rank == 0:
         # Is the first process
+        utils.matu.write_matrix_to_file('saved_matrices/G_red_s_top_full.bin', G, G.shape[0], blocksize)
+        # print(np.sum(np.abs(G[0:48, 0:48])))
+        # print(np.sum(np.abs(G[:, :])))
         produce_schur_topleftcorner(A, L, U, G, start_blockrow, partition_blocksize, blocksize)
+        utils.matu.write_matrix_to_file('saved_matrices/G_prod_s_top_full.bin', G, G.shape[0], blocksize)
     elif comm_rank == comm_size - 1:
         # Is the last process
+        utils.matu.write_matrix_to_file('saved_matrices/G_red_s_bottom_full.bin', G, G.shape[0], blocksize)
         produce_schur_bottomrightcorner(A, L, U, G, start_blockrow, partition_blocksize, blocksize)
+        utils.matu.write_matrix_to_file('saved_matrices/G_prod_s_bottom_full.bin', G, G.shape[0], blocksize)
     else: 
         # Is one of the central processes
+        utils.matu.write_matrix_to_file('saved_matrices/G_red_s_central_full.bin', G, G.shape[0], blocksize)
         produce_schur_central(A, L, U, G, start_blockrow, partition_blocksize, blocksize)
+        utils.matu.write_matrix_to_file('saved_matrices/G_prod_s_central_full.bin', G, G.shape[0], blocksize)
 
 
 
@@ -847,6 +882,7 @@ def produce_schur_central(
 
 
     for i in range(bottom_blockrow-2, top_blockrow, -1):
+        print(i)
         i_rowindice   = i*blocksize
         ip1_rowindice = (i+1)*blocksize
         ip2_rowindice = (i+2)*blocksize
@@ -865,6 +901,7 @@ def produce_schur_central(
 
 
     for i in range(bottom_blockrow-2, top_blockrow+1, -1):
+        print(i)
         im1_rowindice = (i-1)*blocksize
         i_rowindice   = i*blocksize
         ip1_rowindice = (i+1)*blocksize
